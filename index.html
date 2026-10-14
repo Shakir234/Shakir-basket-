@@ -1,0 +1,2134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#050210">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Shakir's Magic Basket</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+body, html { width: 100%; height: 100%; overflow: hidden; background: #050210; font-family: 'Comic Sans MS', 'Segoe UI', sans-serif; color: #fff; transition: background 0.5s; -webkit-overflow-scrolling: touch; }
+
+/* ================= THEMES ================= */
+body.theme-space { --bg-1: #2e1a47; --bg-2: #130724; --bg-3: #06020c; --accent: #ffea00; }
+body.theme-underwater { --bg-1: #0a3d62; --bg-2: #052c44; --bg-3: #001a2c; --accent: #00e5ff; }
+body.theme-forest { --bg-1: #1a4d2e; --bg-2: #0f2f1b; --bg-3: #061710; --accent: #7dff7d; }
+body.theme-desert { --bg-1: #8b5a2b; --bg-2: #5c3a1a; --bg-3: #2a1a0a; --accent: #ffcc66; }
+body.theme-candy { --bg-1: #ff69b4; --bg-2: #c71585; --bg-3: #4a0e2e; --accent: #fffacd; }
+
+body.light-mode #gameCanvas { filter: brightness(1.15); }
+body.light-mode .menu-bg-anim { filter: brightness(1.2); }
+
+#gameCanvas { 
+    position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; 
+    background: radial-gradient(circle at center, var(--bg-1) 0%, var(--bg-2) 60%, var(--bg-3) 100%);
+    z-index: 1; transition: background 0.5s;
+    touch-action: none;
+}
+
+/* ================= NAME PROMPT ================= */
+.name-prompt-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #050210, #2b0a4a, #050210); z-index: 500; display: flex; justify-content: center; align-items: center; padding: 20px; }
+.name-prompt-overlay.hidden { display: none; }
+.name-prompt-card { background: linear-gradient(145deg, #ff007f, #7928ca, #3b14a8); border: 4px solid #ffea00; border-radius: 26px; padding: 30px 22px; text-align: center; max-width: 380px; width: 100%; box-shadow: 0 0 60px rgba(255,234,0,0.7); animation: modal3DPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.name-prompt-card h1 { font-size: 22px; color: #ffea00; margin-bottom: 12px; text-shadow: 2px 2px 0 #000; }
+.name-prompt-card p { font-size: 13px; margin-bottom: 16px; line-height: 1.4; }
+.name-prompt-card input { width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; border: 3px solid #00ff87; background: #000; color: #fff; text-align: center; margin-bottom: 12px; font-weight: bold; font-family: inherit; }
+.name-prompt-card .start-btn { background: linear-gradient(135deg, #00ff87, #60efff); color: #0b1a3c; border: 2.5px solid #fff; padding: 14px; font-size: 17px; font-weight: bold; width: 100%; border-radius: 22px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,255,135,0.5); font-family: inherit; }
+
+/* ================= MENU BG ================= */
+.menu-bg-anim { position: fixed; inset: 0; z-index: 50; background: linear-gradient(135deg, var(--bg-3, #050210) 0%, var(--bg-2, #1a0533) 40%, var(--bg-1, #2b0a4a) 70%, var(--bg-3, #050210) 100%); background-size: 400% 400%; animation: menuGradient 18s ease infinite; pointer-events: none; transition: background 0.5s; }
+.menu-bg-anim.hidden { display: none; }
+@keyframes menuGradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+.menu-particles { position: fixed; inset: 0; z-index: 51; pointer-events: none; overflow: hidden; }
+.menu-particles.hidden { display: none; }
+.floating-emoji { position: absolute; font-size: 24px; opacity: 0.55; animation: floatUp linear infinite; filter: drop-shadow(0 0 10px var(--accent, #ffea00)); }
+@keyframes floatUp { 0% { transform: translateY(110vh) rotate(0deg) scale(0.8); opacity: 0; } 15% { opacity: 0.6; } 85% { opacity: 0.6; } 100% { transform: translateY(-15vh) rotate(360deg) scale(1.2); opacity: 0; } }
+
+/* ================= HUD ================= */
+.ui-container { position: fixed; inset: 0; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.3s; padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0); }
+.ui-container.visible { opacity: 1; }
+
+.hud-top-row { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; pointer-events: none; }
+.player-panel { display: flex; flex-direction: column; gap: 6px; max-width: 46%; }
+.player-panel.right { align-items: flex-end; margin-left: auto; }
+
+.hud-card { background: rgba(0, 0, 0, 0.42); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: 7px 14px; border-radius: 16px; border: 2.5px solid var(--accent, #ffea00); color: #fff; font-weight: bold; font-size: 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15); white-space: nowrap; text-shadow: 1px 1px 2px #000; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+.hud-card.p1 { border-color: rgba(255, 127, 0, 0.9); box-shadow: 0 4px 14px rgba(255,127,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15); }
+.hud-card.p2 { border-color: rgba(0, 180, 219, 0.9); box-shadow: 0 4px 14px rgba(0,180,219,0.5), inset 0 1px 0 rgba(255,255,255,0.15); }
+.hud-card.danger { animation: dangerPulse 0.7s infinite; border-color: rgba(255, 51, 51, 1) !important; }
+@keyframes dangerPulse { 0%,100% { background: rgba(255,0,0,0.25); } 50% { background: rgba(255,0,0,0.55); } }
+
+/* Power-up mini tags */
+.powerup-mini {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+    min-height: 22px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.player-panel.right .powerup-mini { justify-content: flex-end; }
+.pu-mini-tag {
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    border: 1.5px solid rgba(255, 234, 0, 0.5);
+    text-shadow: 1px 1px 2px #000;
+    animation: miniFadeIn 0.3s ease;
+    letter-spacing: 0.3px;
+}
+.pu-mini-tag .secs {
+    font-size: 9px;
+    opacity: 0.8;
+    font-weight: normal;
+    color: var(--accent, #ffea00);
+}
+@keyframes miniFadeIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+
+.center-column { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; z-index: 15; }
+
+.stop-btn { background: rgba(200, 30, 30, 0.85); backdrop-filter: blur(8px); color: white; border: 2.5px solid #fff; padding: 8px 18px; font-size: 14px; font-weight: bold; border-radius: 16px; cursor: pointer; box-shadow: 0 4px 14px rgba(255,51,51,0.6); font-family: inherit; pointer-events: auto; white-space: nowrap; }
+.stop-btn:active { transform: scale(0.95); }
+
+.center-info { background: rgba(0, 0, 0, 0.42); backdrop-filter: blur(8px); border: 2.5px solid var(--accent, #ffea00); padding: 6px 14px; border-radius: 14px; font-size: 13px; color: var(--accent, #ffea00); font-weight: bold; text-align: center; text-shadow: 1px 1px 2px #000; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+
+/* Mic button */
+.game-mic-btn {
+    position: absolute;
+    top: calc(90px + env(safe-area-inset-top, 0px));
+    right: 12px;
+    z-index: 20;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    cursor: pointer;
+    pointer-events: auto;
+    border: 2.5px solid #fff;
+    transition: all 0.2s;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+}
+.game-mic-btn.visible { display: flex; }
+.game-mic-btn.mic-on { background: rgba(0,200,80,0.9); animation: micPulse 1.2s infinite; }
+.game-mic-btn.mic-off { background: rgba(120,60,60,0.85); }
+@keyframes micPulse { 0%, 100% { box-shadow: 0 0 12px rgba(0,255,135,0.7); } 50% { box-shadow: 0 0 22px rgba(0,255,135,1); } }
+
+.lobby-mic-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    border: 2px solid #fff;
+    transition: all 0.2s;
+    background: rgba(120,60,60,0.85);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+    z-index: 5;
+}
+.lobby-mic-btn.mic-on { background: rgba(0,200,80,0.9); animation: micPulse 1.2s infinite; }
+
+/* ================= MODALS ================= */
+.modal-overlay { position: fixed; inset: 0; background: rgba(5, 2, 16, 0.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); display: flex; justify-content: center; align-items: center; z-index: 100; padding: 14px; overflow-y: auto; perspective: 1200px; }
+.modal-overlay.hidden { display: none; }
+
+.modal-card { background: linear-gradient(145deg, #ff007f 0%, #7928ca 45%, #3b14a8 100%); border: 4px solid #ffea00; border-radius: 26px; padding: 22px 18px; text-align: center; color: white; width: 100%; max-width: 400px; box-shadow: 0 0 60px rgba(255,234,0,0.7), 0 15px 40px rgba(0,0,0,0.6); max-height: 92vh; overflow-y: auto; animation: modal3DPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; }
+@keyframes modal3DPop { 0% { opacity: 0; transform: translateY(40px) scale(0.7) rotateX(25deg); } 60% { opacity: 1; transform: translateY(-6px) scale(1.03) rotateX(-4deg); } 100% { opacity: 1; transform: translateY(0) scale(1) rotateX(0deg); } }
+
+.modal-card h1 { font-size: 22px; color: #ffea00; margin-bottom: 10px; text-shadow: 2px 2px 0 #000, 0 0 20px rgba(255,234,0,0.6); }
+.modal-card p { font-size: 12px; margin-bottom: 10px; line-height: 1.4; }
+
+input[type="text"] { width: 100%; padding: 10px; font-size: 14px; border-radius: 10px; border: 2px solid #00ff87; background: #000; color: #fff; text-align: center; margin-bottom: 8px; font-weight: bold; font-family: inherit; }
+
+.menu-btn { background: linear-gradient(135deg, #00ff87, #60efff); color: #0b1a3c; border: 2.5px solid #fff; padding: 12px 16px; font-size: 15px; font-weight: bold; width: 100%; border-radius: 22px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,255,135,0.4), inset 0 -3px 0 rgba(0,0,0,0.2); margin-top: 6px; font-family: inherit; transition: transform 0.15s; }
+.menu-btn:active { transform: scale(0.96) translateY(2px); }
+.menu-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.secondary-btn { background: linear-gradient(135deg, #ff9900, #ff3366); color: white; }
+.joystick-btn { background: linear-gradient(135deg, #00b4db, #0083b0); color: white; }
+.danger-btn { background: linear-gradient(135deg, #ff3333, #990000); color: white; }
+
+.ready-btn { background: linear-gradient(135deg, #00ff87, #00b4db); color: #0b1a3c; border: 3px solid #fff; padding: 16px; font-size: 18px; font-weight: bold; width: 100%; border-radius: 26px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,255,135,0.6), inset 0 -4px 0 rgba(0,0,0,0.25); font-family: inherit; margin-top: 8px; letter-spacing: 2px; transition: all 0.2s; }
+.ready-btn.not-ready { animation: readyBtnPulse 1.6s ease-in-out infinite; }
+@keyframes readyBtnPulse { 0%, 100% { box-shadow: 0 6px 20px rgba(0,255,135,0.6), inset 0 -4px 0 rgba(0,0,0,0.25); } 50% { box-shadow: 0 8px 30px rgba(0,255,135,1), inset 0 -4px 0 rgba(0,0,0,0.25); } }
+.ready-btn.is-ready { background: linear-gradient(135deg, #ffcc00, #ff9900); }
+
+.diff-row { display: flex; gap: 6px; margin: 8px 0; }
+.diff-btn { flex: 1; padding: 10px 6px; font-size: 12px; font-weight: bold; border-radius: 14px; border: 2px solid rgba(255,255,255,0.4); cursor: pointer; font-family: inherit; color: #fff; background: rgba(0,0,0,0.35); transition: all 0.2s; }
+.diff-btn.active { border-color: #ffea00; box-shadow: 0 0 15px rgba(255,234,0,0.7); transform: scale(1.03); }
+.diff-btn[data-diff="easy"] { background: linear-gradient(135deg, #00ff87, #00b4db); color: #0b1a3c; }
+.diff-btn[data-diff="medium"] { background: linear-gradient(135deg, #ffcc00, #ff9900); color: #0b1a3c; }
+.diff-btn[data-diff="hard"] { background: linear-gradient(135deg, #ff3333, #990000); color: #fff; }
+.diff-btn:not(.active) { opacity: 0.45; }
+
+/* Simple Mode toggle */
+.simple-mode-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 14px;
+    margin: 10px 0;
+    border: 2px solid rgba(0,255,135,0.5);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.simple-mode-toggle:active { transform: scale(0.98); }
+.simple-mode-toggle .sm-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff;
+}
+.simple-mode-toggle .sm-icon { font-size: 20px; }
+.simple-mode-toggle input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    accent-color: #00ff87;
+    cursor: pointer;
+}
+.simple-mode-toggle.active {
+    border-color: #00ff87;
+    box-shadow: 0 0 15px rgba(0,255,135,0.5);
+    background: rgba(0,255,135,0.12);
+}
+
+/* Theme selector */
+.theme-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0; }
+.theme-btn { padding: 12px 4px; border-radius: 14px; border: 2px solid rgba(255,255,255,0.3); cursor: pointer; font-size: 22px; background: rgba(0,0,0,0.4); transition: all 0.2s; font-family: inherit; color: white; }
+.theme-btn.active { border-color: #ffea00; box-shadow: 0 0 15px rgba(255,234,0,0.8); transform: scale(1.08); }
+.theme-btn .theme-name { display: block; font-size: 9px; margin-top: 3px; font-weight: bold; color: #fff; }
+
+.settings-group { margin: 8px 0; text-align: left; background: rgba(0,0,0,0.35); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,234,0,0.35); }
+.settings-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #ffea00; }
+.settings-group input[type="range"] { width: 100%; accent-color: #00ff87; height: 8px; }
+.settings-toggle { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; cursor: pointer; font-size: 13px; font-weight: bold; }
+.settings-toggle input { width: 20px; height: 20px; accent-color: #00ff87; cursor: pointer; }
+
+.result-winner { font-size: 18px; color: #ffea00; margin: 12px 0; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 14px; border: 2px solid #ffea00; text-shadow: 2px 2px #000; animation: winnerGlow 1.5s ease-in-out infinite; }
+@keyframes winnerGlow { 0%, 100% { box-shadow: 0 0 15px rgba(255,234,0,0.5); } 50% { box-shadow: 0 0 35px rgba(255,234,0,0.9); } }
+.result-row { display: flex; justify-content: space-between; padding: 8px 12px; margin: 6px 0; border-radius: 10px; font-weight: bold; font-size: 14px; }
+.result-row.p1 { background: rgba(255,127,0,0.3); border: 1px solid #ff7f00; }
+.result-row.p2 { background: rgba(0,180,219,0.3); border: 1px solid #00b4db; }
+.result-row.winner { box-shadow: 0 0 15px #ffea00; border: 2px solid #ffea00; }
+.result-row.loser { opacity: 0.6; }
+
+.status-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; margin: 2px; }
+.status-badge.on { background: #00ff87; color: #000; }
+.status-badge.off { background: #666; color: #fff; }
+.status-badge.ready { background: #00ff87; color: #000; box-shadow: 0 0 8px #00ff87; }
+.status-badge.waiting { background: #ff9900; color: #000; animation: waitingPulse 1s infinite; }
+@keyframes waitingPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+/* Chat */
+.chat-container { margin: 10px 0; background: rgba(0,0,0,0.45); border-radius: 14px; border: 2px solid rgba(255,234,0,0.4); padding: 8px; }
+.chat-header { font-size: 11px; color: #ffea00; font-weight: bold; margin-bottom: 5px; text-align: left; display: flex; justify-content: space-between; }
+.chat-messages { max-height: 110px; overflow-y: auto; text-align: left; padding: 4px 6px; margin-bottom: 6px; }
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-thumb { background: rgba(255,234,0,0.4); border-radius: 4px; }
+.chat-msg { padding: 5px 9px; margin: 4px 0; border-radius: 10px; font-size: 12px; line-height: 1.35; word-wrap: break-word; animation: chatPop 0.3s ease; max-width: 85%; }
+@keyframes chatPop { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+.chat-msg.me { background: rgba(0,180,219,0.4); border: 1px solid rgba(0,180,219,0.7); margin-left: auto; text-align: right; }
+.chat-msg.them { background: rgba(255,127,0,0.4); border: 1px solid rgba(255,127,0,0.7); margin-right: auto; }
+.chat-msg.system { background: rgba(255,234,0,0.18); border: 1px solid rgba(255,234,0,0.5); text-align: center; font-style: italic; font-size: 11px; color: #ffea00; margin: 4px auto; max-width: 100%; }
+.chat-msg .sender { font-weight: bold; font-size: 10px; opacity: 0.9; display: block; margin-bottom: 2px; }
+
+.chat-input-row { display: flex; gap: 4px; align-items: stretch; }
+.chat-input { flex: 1; padding: 8px 10px; font-size: 13px; border-radius: 10px; border: 2px solid #00ff87; background: #000; color: #fff; font-family: inherit; margin: 0; min-width: 0; }
+.chat-input:focus { outline: none; border-color: #ffea00; }
+.chat-send-btn { background: linear-gradient(135deg, #00ff87, #00b4db); border: 2px solid #fff; color: #0b1a3c; font-weight: bold; padding: 8px 12px; border-radius: 10px; cursor: pointer; font-family: inherit; font-size: 14px; flex-shrink: 0; }
+
+.emoji-row { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+.emoji-btn { background: rgba(255,255,255,0.18); border: 1.5px solid rgba(255,234,0,0.5); border-radius: 8px; padding: 3px 6px; font-size: 15px; cursor: pointer; transition: transform 0.1s; }
+.emoji-btn:active { transform: scale(1.35); background: rgba(255,234,0,0.3); }
+
+/* Credit */
+.credit {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 9999; font-size: 14px; color: #ffea00; text-align: center;
+    letter-spacing: 1.5px;
+    text-shadow: 0 0 10px rgba(255,234,0,0.9), 2px 2px 4px #000;
+    pointer-events: none; white-space: nowrap; padding: 10px 26px;
+    background: linear-gradient(135deg, rgba(0,0,0,0.85), rgba(60,0,90,0.85));
+    border-radius: 22px; border: 2.5px solid rgba(255,234,0,0.95);
+    font-family: 'Brush Script MT', 'Comic Sans MS', cursive;
+    font-style: italic; font-weight: bold;
+    box-shadow: 0 0 25px rgba(255,234,0,0.6), inset 0 0 12px rgba(255,234,0,0.2);
+    display: none;
+}
+.credit.visible { display: block; animation: creditFadeIn 0.9s ease-out forwards, creditGlow 3s ease-in-out 0.9s infinite; }
+.credit b { color: #fff; font-size: 15px; text-shadow: 0 0 15px #ffea00, 0 0 30px #ff9900; font-weight: bold; letter-spacing: 1.8px; }
+@keyframes creditFadeIn { 0% { opacity: 0; transform: translateX(-50%) translateY(40px) scale(0.6); } 60% { opacity: 1; transform: translateX(-50%) translateY(-6px) scale(1.08); } 100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+@keyframes creditGlow { 0%, 100% { box-shadow: 0 0 25px rgba(255,234,0,0.6); } 50% { box-shadow: 0 0 45px rgba(255,234,0,1); } }
+
+/* Landscape */
+@media (orientation: landscape) and (max-height: 500px) {
+    .hud-card { font-size: 11px; padding: 5px 10px; min-height: 28px; }
+    .stop-btn { padding: 6px 14px; font-size: 12px; }
+    .center-info { font-size: 11px; padding: 4px 10px; }
+    .center-column { gap: 5px; }
+    .modal-card { padding: 16px; max-height: 96vh; }
+    .modal-card h1 { font-size: 18px; }
+    .menu-btn { padding: 9px 14px; font-size: 13px; margin-top: 4px; }
+    .diff-btn { padding: 7px 5px; font-size: 11px; }
+    .theme-btn { padding: 8px 3px; font-size: 18px; }
+    .game-mic-btn { top: 70px; width: 34px; height: 34px; font-size: 14px; }
+    .credit { font-size: 11px; padding: 6px 16px; bottom: 6px; }
+    .pu-mini-tag { font-size: 10px; padding: 1px 6px; }
+}
+
+/* Tablet */
+@media (min-width: 700px) {
+    .modal-card { max-width: 480px; padding: 30px 24px; }
+    .modal-card h1 { font-size: 26px; }
+    .menu-btn { padding: 14px 20px; font-size: 17px; }
+    .hud-card { font-size: 16px; padding: 10px 18px; }
+    .stop-btn { padding: 10px 22px; font-size: 16px; }
+    .center-info { font-size: 15px; padding: 8px 18px; }
+    .diff-btn { padding: 12px 8px; font-size: 14px; }
+    .theme-btn { padding: 16px 6px; font-size: 26px; }
+    .pu-mini-tag { font-size: 13px; padding: 3px 10px; }
+}
+</style>
+</head>
+<body class="theme-space">
+
+<!-- NAME PROMPT -->
+<div class="name-prompt-overlay hidden" id="namePromptOverlay">
+    <div class="name-prompt-card">
+        <h1>👋 Welcome!</h1>
+        <p style="font-size: 13px;">Apna naam likho — ye game me hamesha rahega:</p>
+        <input type="text" id="firstTimeNameInput" placeholder="Apna naam likho" maxlength="14" autocomplete="off">
+        <button class="start-btn" onclick="saveFirstName()">START KARO 🚀</button>
+    </div>
+</div>
+
+<div class="menu-bg-anim hidden" id="menuBgAnim"></div>
+<div class="menu-particles hidden" id="menuParticles"></div>
+
+<audio id="bgm" src="bgm.mp3" loop preload="auto"></audio>
+<audio id="soundCatch" src="catch.mp3" preload="auto"></audio>
+<audio id="soundBomb" src="bomb.mp3" preload="auto"></audio>
+<audio id="soundHeart" src="heart.mp3" preload="auto"></audio>
+<audio id="soundMiss" src="miss.mp3" preload="auto"></audio>
+<audio id="soundLevel" src="levelup.mp3" preload="auto"></audio>
+<audio id="soundOver" src="gameover.mp3" preload="auto"></audio>
+<audio id="soundTap" src="tap.mp3" preload="auto"></audio>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- HUD -->
+<div class="ui-container" id="uiContainer">
+    <div class="hud-top-row">
+        <div class="player-panel" id="p1Hud">
+            <div class="hud-card p1" id="p1ScoreBoard">Player: 0</div>
+            <div class="hud-card" id="p1LivesBoard">❤️ ❤️ ❤️</div>
+            <div class="powerup-mini" id="p1Powerups"></div>
+        </div>
+        <div class="player-panel right" id="p2Hud" style="display:none;">
+            <div class="hud-card p2" id="p2ScoreBoard">P2: 0</div>
+            <div class="hud-card" id="p2LivesBoard">❤️ ❤️ ❤️</div>
+            <div class="powerup-mini" id="p2Powerups"></div>
+        </div>
+    </div>
+
+    <div class="center-column">
+        <button class="stop-btn" id="stopBtn" onclick="togglePause()">⏸️ STOP</button>
+        <div class="center-info" id="centerInfoBoard">🏆 0 | Lvl 1</div>
+    </div>
+
+    <div class="game-mic-btn mic-off" id="gameMicBtn" onclick="toggleVoice()">🔇</div>
+</div>
+
+<!-- MAIN MENU -->
+<div class="modal-overlay hidden" id="menuModal">
+    <div class="modal-card">
+        <h1 id="modalTitle">🌟 Shakir's Magic Basket 🌟</h1>
+        <p id="modalDesc">Stars aur treats catch karo!<br>⚠️ Bombs se bacho, 💖 hearts se life lo!</p>
+        
+        <div style="margin-top: 8px;">
+            <p style="font-size: 11px; color: #ffea00; font-weight: bold; margin-bottom: 4px;">🎯 Difficulty:</p>
+            <div class="diff-row">
+                <button class="diff-btn active" data-diff="easy" onclick="setDifficulty('easy')">😊 EASY</button>
+                <button class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">🔥 MEDIUM</button>
+                <button class="diff-btn" data-diff="hard" onclick="setDifficulty('hard')">💀 HARD</button>
+            </div>
+        </div>
+
+        <div class="simple-mode-toggle" id="simpleModeToggle" onclick="toggleSimpleMode()">
+            <div class="sm-label">
+                <span class="sm-icon">🎯</span>
+                <span>Simple Mode<br><span style="font-size: 10px; opacity: 0.7;">Koi power-up nahi</span></span>
+            </div>
+            <input type="checkbox" id="simpleModeCheckbox" onclick="event.stopPropagation(); toggleSimpleMode();">
+        </div>
+
+        <button class="menu-btn" id="playBtn" onclick="startGame()">PLAY NOW 🚀</button>
+        <button class="menu-btn joystick-btn" id="mpBtn" onclick="openMultiplayerMenu()">🎮 MULTIPLAYER</button>
+        <button class="menu-btn secondary-btn" onclick="openSettingsModal()">⚙️ SETTINGS</button>
+        <button class="menu-btn" id="fsBtnMenu" onclick="toggleFullScreen()" style="background: linear-gradient(135deg, #00b4db, #0083b0); color: white;">⛶ FULL SCREEN</button>
+    </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="modal-overlay hidden" id="settingsModal">
+    <div class="modal-card">
+        <h1>⚙️ Settings</h1>
+        
+        <div class="settings-group">
+            <label>👤 Aapka Naam:</label>
+            <input type="text" id="p1NameInput" value="" oninput="updateNames()" maxlength="14" placeholder="Your name">
+        </div>
+
+        <div class="settings-group">
+            <label>🎨 Theme (Game Look):</label>
+            <div class="theme-grid" id="themeGrid">
+                <button class="theme-btn active" data-theme="space" onclick="setTheme('space')">🌌<span class="theme-name">Space</span></button>
+                <button class="theme-btn" data-theme="underwater" onclick="setTheme('underwater')">🌊<span class="theme-name">Ocean</span></button>
+                <button class="theme-btn" data-theme="forest" onclick="setTheme('forest')">🌲<span class="theme-name">Forest</span></button>
+                <button class="theme-btn" data-theme="desert" onclick="setTheme('desert')">🏜️<span class="theme-name">Desert</span></button>
+                <button class="theme-btn" data-theme="candy" onclick="setTheme('candy')">🍭<span class="theme-name">Candy</span></button>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <label>☀️ Display Mode:</label>
+            <label class="settings-toggle">
+                <span>🌙 Dark Mode</span>
+                <input type="checkbox" id="darkModeToggle" checked onchange="toggleDarkMode(this.checked)">
+            </label>
+        </div>
+
+        <div class="settings-group">
+            <label>📳 Vibration:</label>
+            <label class="settings-toggle">
+                <span>Enable Vibration</span>
+                <input type="checkbox" id="vibrationToggle" checked onchange="toggleVibration(this.checked)">
+            </label>
+        </div>
+
+        <div class="settings-group">
+            <label>🎵 BGM Volume: <span id="bgmVal">50%</span></label>
+            <input type="range" id="bgmSlider" min="0" max="100" value="50" oninput="updateBgmVolume(this.value)">
+        </div>
+        <div class="settings-group">
+            <label>🔊 SFX Volume: <span id="sfxVal">80%</span></label>
+            <input type="range" id="sfxSlider" min="0" max="100" value="80" oninput="updateSfxVolume(this.value)">
+        </div>
+        <button class="menu-btn" onclick="closeSettingsModal()">💾 BACK</button>
+    </div>
+</div>
+
+<!-- MULTIPLAYER -->
+<div class="modal-overlay hidden" id="multiplayerModal">
+    <div class="modal-card">
+        <h1>🎮 Multiplayer</h1>
+        <p style="font-size:11px;">Dost ke saath khelo — ek Host banega, doosra Join karega.</p>
+        
+        <button class="menu-btn joystick-btn" onclick="openHostSetup()">🌐 HOST GAME BANAO</button>
+        <button class="menu-btn secondary-btn" onclick="openJoinSetup()">🔗 HOST SE JOIN KARO</button>
+        <button class="menu-btn danger-btn" onclick="closeMultiplayerMenu()">⬅️ BACK</button>
+        
+        <div id="mpStatusBox" style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 12px; display: none;">
+            <p style="font-size: 11px; color: #ffea00; margin-bottom: 6px;">📡 Status:</p>
+            <div>
+                <span class="status-badge off" id="p1Status">P1: Waiting</span>
+                <span class="status-badge off" id="p2Status">P2: Waiting</span>
+            </div>
+            <p style="font-size: 11px; color:#00ff87; margin-top: 8px;">Host ID: <b id="hostIdDisplay" style="color:#ffea00;">---</b></p>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="hostSetupModal">
+    <div class="modal-card">
+        <h1>🌐 Host Game</h1>
+        <p style="font-size: 11px;">Apna ID set karo (dost ko yahi dena hai):</p>
+        <input type="text" id="hostIdInput" placeholder="e.g. shakir" value="shakir" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button class="menu-btn" onclick="createHost()">🚀 START HOSTING</button>
+        <button class="menu-btn secondary-btn" onclick="backToMultiplayerMenu()">⬅️ BACK</button>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="joinSetupModal">
+    <div class="modal-card">
+        <h1>🔗 Join Game</h1>
+        <p style="font-size: 11px;">Dost ka Host ID daalo:</p>
+        <input type="text" id="joinIdInput" placeholder="Host ID" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <button class="menu-btn" onclick="joinHost()">🔌 CONNECT</button>
+        <p id="joinStatus" style="color:#00ffff; font-size:12px; margin-top: 8px; min-height: 20px;"></p>
+        <button class="menu-btn secondary-btn" onclick="backToMultiplayerMenu()">⬅️ BACK</button>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="hostLobbyModal">
+    <div class="modal-card">
+        <div class="lobby-mic-btn" id="hostMicBtn" onclick="toggleVoice()">🔇</div>
+        <h1>🌐 Host Lobby</h1>
+        <p style="font-size: 11px;">Dost ke join hone ka intezaar:</p>
+        
+        <div style="padding: 12px; background: rgba(0,0,0,0.4); border-radius: 14px; margin: 10px 0; border: 2px solid rgba(255,234,0,0.4);">
+            <div style="display: flex; justify-content: space-around; gap: 10px;">
+                <div style="text-align: center;">
+                    <p style="font-size: 12px; font-weight: bold;" id="lobbyP1Name">🟠 You</p>
+                    <span class="status-badge ready" id="lobbyP1Status">READY</span>
+                </div>
+                <div style="text-align: center;">
+                    <p style="font-size: 12px; font-weight: bold;" id="lobbyP2Name">🔵 Waiting...</p>
+                    <span class="status-badge off" id="lobbyP2Status">NOT JOINED</span>
+                </div>
+            </div>
+        </div>
+        
+        <p style="font-size: 11px; color:#00ff87;">Host ID: <b id="hostIdDisplay2" style="color:#ffea00;">---</b></p>
+        
+        <div class="chat-container">
+            <div class="chat-header">
+                <span>💬 Chat</span>
+                <span id="hostChatStatus" style="color:#ff9900;">⏳ Waiting</span>
+            </div>
+            <div class="chat-messages" id="hostChatMessages"></div>
+            <div class="chat-input-row">
+                <input type="text" class="chat-input" id="hostChatInput" placeholder="Message..." maxlength="60" onkeydown="if(event.key==='Enter')hostSendMessage()">
+                <button class="chat-send-btn" onclick="hostSendMessage()">📤</button>
+            </div>
+            <div class="emoji-row">
+                <button class="emoji-btn" onclick="hostSendEmoji('😀')">😀</button>
+                <button class="emoji-btn" onclick="hostSendEmoji('😂')">😂</button>
+                <button class="emoji-btn" onclick="hostSendEmoji('👍')">👍</button>
+                <button class="emoji-btn" onclick="hostSendEmoji('❤️')">❤️</button>
+                <button class="emoji-btn" onclick="hostSendEmoji('🔥')">🔥</button>
+                <button class="emoji-btn" onclick="hostSendEmoji('😢')">😢</button>
+                <button class="emoji-btn" onclick="hostSendEmoji('🎮')">🎮</button>
+                <button class="emoji-btn" onclick="hostSendEmoji('🏆')">🏆</button>
+            </div>
+        </div>
+        
+        <button class="menu-btn" id="hostStartBtn" onclick="hostStartGame()" disabled>⏳ WAITING...</button>
+        <button class="menu-btn danger-btn" onclick="cancelHost()">❌ CANCEL</button>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="guestLobbyModal">
+    <div class="modal-card">
+        <div class="lobby-mic-btn" id="guestMicBtn" onclick="toggleVoice()">🔇</div>
+        <h1>🎮 Guest Lobby</h1>
+        <p style="font-size: 12px;">Ready hone ke liye READY dabao:</p>
+        
+        <div style="padding: 12px; background: rgba(0,0,0,0.4); border-radius: 14px; margin: 10px 0; border: 2px solid rgba(255,234,0,0.4);">
+            <div style="display: flex; justify-content: space-around; gap: 10px;">
+                <div style="text-align: center;">
+                    <p style="font-size: 12px; font-weight: bold;" id="guestLobbyP1Name">🟠 Host</p>
+                    <span class="status-badge ready" id="guestLobbyP1Status">READY</span>
+                </div>
+                <div style="text-align: center;">
+                    <p style="font-size: 12px; font-weight: bold;" id="guestLobbyP2Name">🔵 You</p>
+                    <span class="status-badge waiting" id="guestLobbyP2Status">WAITING</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-container">
+            <div class="chat-header">
+                <span>💬 Chat</span>
+                <span style="color:#00ff87;">🟢 Connected</span>
+            </div>
+            <div class="chat-messages" id="guestChatMessages"></div>
+            <div class="chat-input-row">
+                <input type="text" class="chat-input" id="guestChatInput" placeholder="Message..." maxlength="60" onkeydown="if(event.key==='Enter')guestSendMessage()">
+                <button class="chat-send-btn" onclick="guestSendMessage()">📤</button>
+            </div>
+            <div class="emoji-row">
+                <button class="emoji-btn" onclick="guestSendEmoji('😀')">😀</button>
+                <button class="emoji-btn" onclick="guestSendEmoji('😂')">😂</button>
+                <button class="emoji-btn" onclick="guestSendEmoji('👍')">👍</button>
+                <button class="emoji-btn" onclick="guestSendEmoji('❤️')">❤️</button>
+                <button class="emoji-btn" onclick="guestSendEmoji('🔥')">🔥</button>
+                <button class="emoji-btn" onclick="guestSendEmoji('😢')">😢</button>
+                <button class="emoji-btn" onclick="guestSendEmoji('🎮')">🎮</button>
+                <button class="emoji-btn" onclick="guestSendEmoji('🏆')">🏆</button>
+            </div>
+        </div>
+        
+        <button class="ready-btn not-ready" id="guestReadyBtn" onclick="guestToggleReady()">✋ READY</button>
+        <p style="font-size: 11px; color: #ffea00; margin-top: 8px;" id="guestReadyMsg">Host ke start karne ka intezaar...</p>
+        <button class="menu-btn danger-btn" onclick="cancelGuest()">❌ LEAVE</button>
+    </div>
+</div>
+
+<!-- RESULT -->
+<div class="modal-overlay hidden" id="resultModal">
+    <div class="modal-card">
+        <h1>🏁 GAME OVER 🏁</h1>
+        <div class="result-winner" id="winnerText">Winner!</div>
+        <div id="resultDetails"></div>
+        <button class="menu-btn" id="resultPlayAgainBtn" onclick="playAgain()">🔄 PLAY AGAIN</button>
+        <button class="menu-btn secondary-btn" onclick="backToMenu()">🏠 MAIN MENU</button>
+    </div>
+</div>
+
+<div class="credit" id="creditFooter">✨ Made by <b>Shakir Sheikh</b> ✨</div>
+
+<script>
+// =================================================================
+// ==================== GLOBAL STATE ====================
+// =================================================================
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
+
+const bgm = document.getElementById('bgm');
+const sfxFiles = {
+    catch: document.getElementById('soundCatch'),
+    bomb: document.getElementById('soundBomb'),
+    heart: document.getElementById('soundHeart'),
+    miss: document.getElementById('soundMiss'),
+    level: document.getElementById('soundLevel'),
+    over: document.getElementById('soundOver'),
+    tap: document.getElementById('soundTap')
+};
+
+let bgmVolume = 0.5;
+let sfxVolume = 0.8;
+bgm.volume = bgmVolume;
+
+let player1Name = localStorage.getItem('shakir_player_name') || "";
+let player2Name = "";
+const savedDiff = localStorage.getItem('shakir_difficulty') || 'easy';
+const savedBgm = parseFloat(localStorage.getItem('shakir_bgm') || '0.5');
+const savedSfx = parseFloat(localStorage.getItem('shakir_sfx') || '0.8');
+const savedTheme = localStorage.getItem('shakir_theme') || 'space';
+const savedDarkMode = localStorage.getItem('shakir_darkmode') !== 'false';
+const savedVibration = localStorage.getItem('shakir_vibration') !== 'false';
+const savedSimpleMode = localStorage.getItem('shakir_simplemode') === 'true';
+
+let isPlaying = false;
+let isPaused = false;
+let isGameOver = false;
+let p1Score = 0;
+let p2Score = 0;
+let highScore = parseInt(localStorage.getItem('shakir_highscore') || '0');
+let level = 1;
+let difficulty = savedDiff;
+let simpleMode = savedSimpleMode;  // Simple Mode: no power-ups
+bgmVolume = savedBgm;
+sfxVolume = savedSfx;
+bgm.volume = bgmVolume;
+
+let theme = savedTheme;
+let darkMode = savedDarkMode;
+let vibrationEnabled = savedVibration;
+
+let items = [];
+let particles = [];
+let bgStars = [];
+let lastSpawn = 0;
+let lastFrameTime = 0;
+let screencastTimer = 0;
+
+// Power-ups per player (separate)
+let p1Powerups = { magnet: 0, slowmo: 0, freeze: 0, shield: 0, doublePoints: 0 };
+let p2Powerups = { magnet: 0, slowmo: 0, freeze: 0, shield: 0, doublePoints: 0 };
+
+const player1 = { x: 0, y: 0, targetX: 0, width: 110, height: 60, color: '#ff7f00', lives: 3 };
+const player2 = { x: 0, y: 0, targetX: 0, width: 110, height: 60, color: '#00b4db', lives: 3, active: false };
+
+let peer = null;
+let isHost = false;
+let isGuest = false;
+let connectedPlayers = { 1: null, 2: null };
+let hostConn = null;
+let myPlayerNum = 1;
+let hostReady = true;
+let guestReady = false;
+let hostLobbyActive = false;
+let guestLobbyActive = false;
+
+// Voice
+let localStream = null;
+let voiceActive = false;
+let activeCall = null;
+let incomingCall = null;
+let audioElement = null;
+let guestPeerId = null;
+
+// =================================================================
+// ==================== THEME ====================
+// =================================================================
+function setTheme(newTheme) {
+    theme = newTheme;
+    localStorage.setItem('shakir_theme', newTheme);
+    document.body.className = 'theme-' + newTheme + (darkMode ? '' : ' light-mode');
+    document.querySelectorAll('.theme-btn').forEach(b => {
+        if (b.dataset.theme === newTheme) b.classList.add('active');
+        else b.classList.remove('active');
+    });
+    spawnMenuParticles();
+    playTap();
+}
+
+function getThemeEmojis() {
+    return {
+        space: ['⭐', '🌟', '✨', '💫', '🪐', '🚀', '☄️', '💎'],
+        underwater: ['🐟', '🐠', '🐡', '🦈', '🐙', '🐚', '💧', '🫧'],
+        forest: ['🌲', '🍃', '🌳', '🦋', '🐛', '🌿', '🍄', '🐿️'],
+        desert: ['🌵', '🏜️', '☀️', '🐫', '🦂', '🌴', '🪨', '🐍'],
+        candy: ['🍭', '🍬', '🧁', '🍩', '🍪', '🎂', '🍫', '🍰']
+    }[theme] || ['⭐', '🌟', '✨', '💫'];
+}
+
+function getThemeItemMapping() {
+    return {
+        space: { star:'⭐', cupcake:'🧁', apple:'🍎', bomb:'💣', candy:'🍬', heart:'💖', magnet:'🧲', slowmo:'⏱️', freeze:'❄️', shield:'🛡️', doublePoints:'2️⃣' },
+        underwater: { star:'🐚', cupcake:'🦑', apple:'🐡', bomb:'💣', candy:'🐙', heart:'💖', magnet:'🧲', slowmo:'⏱️', freeze:'❄️', shield:'🛡️', doublePoints:'2️⃣' },
+        forest: { star:'⭐', cupcake:'🍄', apple:'🍎', bomb:'💣', candy:'🌰', heart:'💖', magnet:'🧲', slowmo:'⏱️', freeze:'❄️', shield:'🛡️', doublePoints:'2️⃣' },
+        desert: { star:'💎', cupcake:'🥥', apple:'🍊', bomb:'💣', candy:'🍯', heart:'💖', magnet:'🧲', slowmo:'⏱️', freeze:'❄️', shield:'🛡️', doublePoints:'2️⃣' },
+        candy: { star:'🍭', cupcake:'🧁', apple:'🍎', bomb:'💣', candy:'🍬', heart:'💖', magnet:'🧲', slowmo:'⏱️', freeze:'❄️', shield:'🛡️', doublePoints:'2️⃣' }
+    }[theme];
+}
+
+// =================================================================
+// ==================== DARK/VIBRATION ====================
+// =================================================================
+function toggleDarkMode(isDark) {
+    darkMode = isDark;
+    localStorage.setItem('shakir_darkmode', isDark);
+    if (isDark) document.body.classList.remove('light-mode');
+    else document.body.classList.add('light-mode');
+    playTap();
+}
+
+function vibrate(pattern) {
+    if (!vibrationEnabled) return;
+    if (!navigator.vibrate) return;
+    try { navigator.vibrate(pattern); } catch(e){}
+}
+
+function toggleVibration(enabled) {
+    vibrationEnabled = enabled;
+    localStorage.setItem('shakir_vibration', enabled);
+    if (enabled) vibrate(30);
+    playTap();
+}
+
+// =================================================================
+// ==================== SIMPLE MODE ====================
+// =================================================================
+function toggleSimpleMode() {
+    simpleMode = !simpleMode;
+    localStorage.setItem('shakir_simplemode', simpleMode);
+    const checkbox = document.getElementById('simpleModeCheckbox');
+    const toggle = document.getElementById('simpleModeToggle');
+    checkbox.checked = simpleMode;
+    if (simpleMode) toggle.classList.add('active');
+    else toggle.classList.remove('active');
+    vibrate(20);
+    playTap();
+}
+
+// =================================================================
+// ==================== NAME PROMPT ====================
+// =================================================================
+function saveFirstName() {
+    const val = document.getElementById('firstTimeNameInput').value.trim();
+    if (!val || val.length < 2) { alert('Kam se kam 2 letters ka naam likho!'); return; }
+    player1Name = val;
+    localStorage.setItem('shakir_player_name', player1Name);
+    document.getElementById('p1NameInput').value = player1Name;
+    playTap();
+    document.getElementById('namePromptOverlay').classList.add('hidden');
+    initMenu();
+}
+
+function initMenu() {
+    resizeCanvas();
+    updateHUD();
+    showMenuBg();
+    showModal('menuModal');
+    requestAnimationFrame(gameLoop);
+}
+
+// =================================================================
+// ==================== SOUND ====================
+// =================================================================
+function playSfx(name) {
+    const el = sfxFiles[name];
+    if (!el) return;
+    try { el.volume = sfxVolume; el.currentTime = 0; el.play().catch(()=>{}); } catch(e){}
+}
+function playTap() { playSfx('tap'); vibrate(8); }
+
+function startBgm() {
+    try { bgm.volume = bgmVolume; const p = bgm.play(); if (p && p.catch) p.catch(()=>{}); } catch(e){}
+}
+
+let audioUnlocked = false;
+function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    startBgm();
+}
+['click', 'touchstart', 'keydown'].forEach(evt => {
+    document.addEventListener(evt, unlockAudio, { once: true });
+});
+
+// =================================================================
+// ==================== MENU PARTICLES ====================
+// =================================================================
+function spawnMenuParticles() {
+    const container = document.getElementById('menuParticles');
+    if (!container) return;
+    container.innerHTML = '';
+    const emojis = getThemeEmojis();
+    for (let i = 0; i < 20; i++) {
+        const el = document.createElement('div');
+        el.className = 'floating-emoji';
+        el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        el.style.left = Math.random() * 100 + '%';
+        el.style.animationDuration = (12 + Math.random() * 12) + 's';
+        el.style.animationDelay = (Math.random() * 12) + 's';
+        el.style.fontSize = (18 + Math.random() * 20) + 'px';
+        container.appendChild(el);
+    }
+}
+
+// =================================================================
+// ==================== CANVAS ====================
+// =================================================================
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    player1.y = canvas.height - 90;
+    player2.y = canvas.height - 90;
+    let baseW = Math.min(canvas.width, canvas.height) * 0.22;
+    player1.width = Math.min(140, Math.max(90, baseW));
+    player2.width = Math.min(140, Math.max(90, baseW));
+    if (player1.x === 0) player1.x = canvas.width / 3 - player1.width / 2;
+    if (player2.x === 0) player2.x = (canvas.width / 3) * 2 - player2.width / 2;
+    player1.targetX = player1.x;
+    player2.targetX = player2.x;
+    initStars();
+}
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200));
+
+function initStars() {
+    bgStars = [];
+    const count = Math.min(60, Math.floor((canvas.width * canvas.height) / 20000));
+    for (let i = 0; i < count; i++) {
+        bgStars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2.5 + 1,
+            alpha: Math.random(),
+            speed: Math.random() * 0.02 + 0.005
+        });
+    }
+}
+
+// =================================================================
+// ==================== UI HELPERS ====================
+// =================================================================
+function showModal(id) { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); }
+function hideModal(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
+
+function showMenuBg() {
+    document.getElementById('menuBgAnim').classList.remove('hidden');
+    document.getElementById('menuParticles').classList.remove('hidden');
+    const credit = document.getElementById('creditFooter');
+    credit.classList.remove('hidden');
+    credit.classList.add('visible');
+}
+function hideMenuBg() {
+    document.getElementById('menuBgAnim').classList.add('hidden');
+    document.getElementById('menuParticles').classList.add('hidden');
+    document.getElementById('creditFooter').classList.remove('visible');
+}
+function showUI() { document.getElementById('uiContainer').classList.add('visible'); }
+function hideUI() { document.getElementById('uiContainer').classList.remove('visible'); }
+
+document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (t && (t.classList.contains('menu-btn') || t.classList.contains('diff-btn') || t.classList.contains('stop-btn') || t.classList.contains('ready-btn') || t.classList.contains('chat-send-btn') || t.classList.contains('emoji-btn') || t.classList.contains('lobby-mic-btn') || t.classList.contains('game-mic-btn') || t.classList.contains('theme-btn'))) {
+        playTap();
+    }
+});
+
+function updateNames() {
+    const val = document.getElementById('p1NameInput').value.trim();
+    if (val.length > 0) {
+        player1Name = val;
+        localStorage.setItem('shakir_player_name', player1Name);
+    }
+    if (isHost && connectedPlayers[2] && connectedPlayers[2].open) {
+        connectedPlayers[2].send({ type: 'nameUpdate', p1: player1Name, p2: player2Name });
+    }
+    updateHUD();
+    updateLobbyUI();
+}
+
+function setDifficulty(diff) {
+    difficulty = diff;
+    localStorage.setItem('shakir_difficulty', diff);
+    document.querySelectorAll('.diff-btn').forEach(b => {
+        if (b.dataset.diff === diff) b.classList.add('active');
+        else b.classList.remove('active');
+    });
+    if (isHost && connectedPlayers[2] && connectedPlayers[2].open) {
+        connectedPlayers[2].send({ type: 'difficultyUpdate', difficulty });
+    }
+}
+
+function updateBgmVolume(val) {
+    bgmVolume = val / 100;
+    bgm.volume = bgmVolume;
+    localStorage.setItem('shakir_bgm', bgmVolume);
+    document.getElementById('bgmVal').innerText = val + '%';
+}
+function updateSfxVolume(val) {
+    sfxVolume = val / 100;
+    localStorage.setItem('shakir_sfx', sfxVolume);
+    document.getElementById('sfxVal').innerText = val + '%';
+}
+
+function openSettingsModal() { hideModal('menuModal'); showModal('settingsModal'); }
+function closeSettingsModal() { hideModal('settingsModal'); showModal('menuModal'); }
+function openMultiplayerMenu() { hideModal('menuModal'); showModal('multiplayerModal'); }
+function closeMultiplayerMenu() { hideModal('multiplayerModal'); showModal('menuModal'); }
+function backToMultiplayerMenu() { hideModal('hostSetupModal'); hideModal('joinSetupModal'); showModal('multiplayerModal'); }
+function openHostSetup() { hideModal('multiplayerModal'); showModal('hostSetupModal'); }
+function openJoinSetup() { hideModal('multiplayerModal'); showModal('joinSetupModal'); }
+
+function toggleFullScreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(()=>{});
+    } else if (document.exitFullscreen) {
+        document.exitFullscreen();
+    }
+}
+
+function togglePause() {
+    if (!isPlaying || isGameOver) return;
+    isPaused = !isPaused;
+    if (isPaused) {
+        document.getElementById('modalTitle').innerText = '⏸️ PAUSED';
+        document.getElementById('modalDesc').innerText = 'Game paused. Resume karo ya main menu jao.';
+        document.getElementById('playBtn').innerText = '▶️ RESUME';
+        document.getElementById('playBtn').onclick = resumeGame;
+        document.getElementById('mpBtn').innerText = '🏠 MAIN MENU';
+        document.getElementById('mpBtn').onclick = exitToMainMenu;
+        document.getElementById('fsBtnMenu').style.display = 'none';
+        showMenuBg();
+        showModal('menuModal');
+    }
+}
+
+function resumeGame() {
+    isPaused = false;
+    hideModal('menuModal');
+    hideMenuBg();
+    document.getElementById('playBtn').innerText = 'PLAY NOW 🚀';
+    document.getElementById('playBtn').onclick = startGame;
+    document.getElementById('mpBtn').innerText = '🎮 MULTIPLAYER';
+    document.getElementById('mpBtn').onclick = openMultiplayerMenu;
+    document.getElementById('fsBtnMenu').style.display = 'block';
+}
+
+function exitToMainMenu() {
+    clearAllPowerups();
+    stopVoice();
+    if (isHost) {
+        if (connectedPlayers[2] && connectedPlayers[2].open) connectedPlayers[2].send({ type: 'exitToMenu' });
+        cancelHostSilent();
+    } else if (isGuest) {
+        if (hostConn && hostConn.open) hostConn.send({ type: 'exitToMenu' });
+        cancelGuestSilent();
+    }
+    
+    isPlaying = false;
+    isPaused = false;
+    isGameOver = false;
+    hideUI();
+    document.getElementById('gameMicBtn').classList.remove('visible');
+    hideModal('menuModal');
+    showMenuBg();
+    showModal('menuModal');
+    document.getElementById('modalTitle').innerText = "🌟 Shakir's Magic Basket 🌟";
+    document.getElementById('modalDesc').innerHTML = "Stars aur treats catch karo!<br>⚠️ Bombs se bacho, 💖 hearts se life lo!";
+    document.getElementById('playBtn').innerText = 'PLAY NOW 🚀';
+    document.getElementById('playBtn').onclick = startGame;
+    document.getElementById('mpBtn').innerText = '🎮 MULTIPLAYER';
+    document.getElementById('mpBtn').onclick = openMultiplayerMenu;
+    document.getElementById('fsBtnMenu').style.display = 'block';
+    startBgm();
+}
+
+// =================================================================
+// ==================== VOICE CHAT ====================
+// =================================================================
+async function enableVoice() {
+    if (voiceActive) return;
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: false
+        });
+        voiceActive = true;
+        updateMicUI();
+        vibrate(40);
+        if (isHost && guestPeerId) makeVoiceCall(guestPeerId);
+        else if (isGuest && hostConn && hostConn.peer) makeVoiceCall(hostConn.peer);
+    } catch (err) {
+        alert('🎤 Microphone access nahi mila!\n\n' + (err.message || '') + '\n\nPermission allow karo browser me.\n\nNote: HTTPS ya localhost par hi mic chalta hai.');
+        voiceActive = false;
+        updateMicUI();
+    }
+}
+
+function disableVoice() {
+    if (localStream) localStream.getAudioTracks().forEach(t => { t.enabled = false; });
+    voiceActive = false;
+    updateMicUI();
+    vibrate(20);
+}
+
+function makeVoiceCall(remotePeerId) {
+    if (!localStream || !peer || !remotePeerId) return;
+    if (activeCall) { try { activeCall.close(); } catch(e){} activeCall = null; }
+    try {
+        activeCall = peer.call(remotePeerId, localStream);
+        if (activeCall) {
+            activeCall.on('stream', (remoteStream) => playRemoteAudio(remoteStream));
+            activeCall.on('close', () => { activeCall = null; });
+        }
+    } catch(e) { console.warn('Voice error:', e); }
+}
+
+function playRemoteAudio(stream) {
+    if (!audioElement) {
+        audioElement = document.createElement('audio');
+        audioElement.autoplay = true;
+        audioElement.playsInline = true;
+        audioElement.style.display = 'none';
+        document.body.appendChild(audioElement);
+    }
+    audioElement.srcObject = stream;
+    audioElement.play().catch(()=>{});
+}
+
+function stopVoice() {
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    if (activeCall) { try { activeCall.close(); } catch(e){} activeCall = null; }
+    if (incomingCall) { try { incomingCall.close(); } catch(e){} incomingCall = null; }
+    if (audioElement) { try { audioElement.srcObject = null; } catch(e){} }
+    voiceActive = false;
+    updateMicUI();
+}
+
+function toggleVoice() {
+    if (voiceActive) disableVoice();
+    else enableVoice();
+}
+
+function updateMicUI() {
+    ['hostMicBtn', 'guestMicBtn', 'gameMicBtn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        btn.classList.remove('mic-on', 'mic-off');
+        if (voiceActive) { btn.classList.add('mic-on'); btn.textContent = '🎤'; }
+        else { btn.classList.add('mic-off'); btn.textContent = '🔇'; }
+    });
+}
+
+// =================================================================
+// ==================== POWER-UPS (Per Player) ====================
+// =================================================================
+const POWERUP_CONFIG = {
+    magnet: { duration: 8000, icon: '🧲', name: 'MAGNET' },
+    slowmo: { duration: 5000, icon: '⏱️', name: 'SLOW-MO' },
+    freeze: { duration: 6000, icon: '❄️', name: 'FREEZE' },
+    shield: { duration: 10000, icon: '🛡️', name: 'SHIELD' },
+    doublePoints: { duration: 10000, icon: '2️⃣', name: 'DOUBLE' }
+};
+
+function activatePowerup(playerNum, type) {
+    if (!POWERUP_CONFIG[type]) return;
+    const cfg = POWERUP_CONFIG[type];
+    const target = playerNum === 1 ? p1Powerups : p2Powerups;
+    target[type] = (target[type] > 0 ? target[type] : 0) + cfg.duration;
+    playSfx('heart');
+    vibrate([50, 30, 50]);
+    updatePowerupDisplay();
+}
+
+function updatePowerupDisplay() {
+    const p1Container = document.getElementById('p1Powerups');
+    const p2Container = document.getElementById('p2Powerups');
+    
+    // P1 side
+    if (p1Container) {
+        p1Container.innerHTML = '';
+        Object.entries(p1Powerups).forEach(([type, time]) => {
+            if (time > 0) {
+                const cfg = POWERUP_CONFIG[type];
+                const el = document.createElement('div');
+                el.className = 'pu-mini-tag';
+                const secs = Math.ceil(time / 1000);
+                el.innerHTML = `${cfg.icon}<span class="secs">${secs}s</span>`;
+                p1Container.appendChild(el);
+            }
+        });
+    }
+    // P2 side
+    if (p2Container) {
+        p2Container.innerHTML = '';
+        Object.entries(p2Powerups).forEach(([type, time]) => {
+            if (time > 0) {
+                const cfg = POWERUP_CONFIG[type];
+                const el = document.createElement('div');
+                el.className = 'pu-mini-tag';
+                const secs = Math.ceil(time / 1000);
+                el.innerHTML = `${cfg.icon}<span class="secs">${secs}s</span>`;
+                p2Container.appendChild(el);
+            }
+        });
+    }
+}
+
+function tickPowerups(dt) {
+    let changed = false;
+    Object.keys(p1Powerups).forEach(type => {
+        if (p1Powerups[type] > 0) { p1Powerups[type] -= dt; if (p1Powerups[type] <= 0) p1Powerups[type] = 0; changed = true; }
+    });
+    Object.keys(p2Powerups).forEach(type => {
+        if (p2Powerups[type] > 0) { p2Powerups[type] -= dt; if (p2Powerups[type] <= 0) p2Powerups[type] = 0; changed = true; }
+    });
+    if (changed) updatePowerupDisplay();
+}
+
+function clearAllPowerups() {
+    Object.keys(p1Powerups).forEach(k => p1Powerups[k] = 0);
+    Object.keys(p2Powerups).forEach(k => p2Powerups[k] = 0);
+    updatePowerupDisplay();
+}
+
+function isPowerupActiveP1(type) { return p1Powerups[type] > 0; }
+function isPowerupActiveP2(type) { return p2Powerups[type] > 0; }
+
+// =================================================================
+// ==================== MULTIPLAYER - HOST ====================
+// =================================================================
+function createHost() {
+    let id = document.getElementById('hostIdInput').value.trim().toLowerCase();
+    if (!id) { alert('ID daalo!'); return; }
+    if (peer) peer.destroy();
+    connectedPlayers = { 1: null, 2: null };
+    guestPeerId = null;
+    isHost = true; isGuest = false;
+    hostReady = true; guestReady = false;
+    peer = new Peer(id);
+    
+    peer.on('open', (openId) => {
+        document.getElementById('hostIdDisplay').innerText = openId;
+        document.getElementById('hostIdDisplay2').innerText = openId;
+        document.getElementById('mpStatusBox').style.display = 'block';
+        hideModal('hostSetupModal');
+        hideModal('multiplayerModal');
+        hostLobbyActive = true;
+        showModal('hostLobbyModal');
+        updateConnectionStatus();
+        updateLobbyUI();
+        addChatSystemMsg('hostChatMessages', 'Lobby started. Waiting for P2...');
+    });
+    
+    peer.on('error', (err) => {
+        if (err.type === 'unavailable-id') alert('Ye ID already use me hai! Doosra ID try karo.');
+    });
+    
+    peer.on('call', (call) => {
+        incomingCall = call;
+        if (localStream) call.answer(localStream); else call.answer();
+        call.on('stream', (remoteStream) => playRemoteAudio(remoteStream));
+        activeCall = call;
+    });
+    
+    peer.on('connection', (conn) => {
+        conn.on('data', (data) => handleGuestData(conn, data));
+        conn.on('close', () => {
+            if (conn.playerNum === 2) {
+                connectedPlayers[2] = null;
+                guestReady = false;
+                player2.active = false;
+                player2Name = "";
+                guestPeerId = null;
+                checkPlayerActive();
+                updateConnectionStatus();
+                updateLobbyUI();
+                addChatSystemMsg('hostChatMessages', 'Player 2 disconnected');
+                stopVoice();
+                if (isPlaying && !isGameOver) endGame(true, 'P1');
+            }
+        });
+    });
+}
+
+function handleGuestData(conn, data) {
+    if (data.type === 'register') {
+        if (!connectedPlayers[2]) {
+            connectedPlayers[2] = conn;
+            conn.playerNum = 2;
+            guestPeerId = data.peerId || conn.peer;
+            const guestName = data.guestName || "Player 2";
+            player2Name = guestName;
+            conn.send({ type: 'registered', status: 'success', player: 2, p1Name: player1Name, p2Name: player2Name, difficulty });
+            player2.active = true;
+            player2.targetX = player2.x;
+            updateConnectionStatus();
+            checkPlayerActive();
+            updateLobbyUI();
+            addChatSystemMsg('hostChatMessages', `🟢 ${guestName} joined!`);
+            document.getElementById('hostChatStatus').innerText = '🟢 Connected';
+        } else {
+            conn.send({ type: 'registered', status: 'error', message: 'Game full!' });
+        }
+    }
+    else if (data.type === 'guestReady') {
+        guestReady = data.ready;
+        updateLobbyUI();
+        addChatSystemMsg('hostChatMessages', guestReady ? `✅ ${player2Name} READY` : `⏸️ ${player2Name} NOT ready`);
+    }
+    else if (data.type === 'move') {
+        if (player2.active && player2.lives > 0) player2.targetX = data.xRatio * (canvas.width - player2.width);
+    }
+    else if (data.type === 'chat') {
+        addChatMsg('hostChatMessages', data.text, 'them', data.from || player2Name);
+    }
+    else if (data.type === 'exitToMenu') { stopVoice(); cancelHostSilent(); }
+}
+
+function updateConnectionStatus() {
+    const el1 = document.getElementById('p1Status');
+    const el2 = document.getElementById('p2Status');
+    if (el1) { el1.innerText = 'P1: Connected'; el1.className = 'status-badge on'; }
+    if (el2) {
+        const p2Active = connectedPlayers[2] !== null;
+        el2.innerText = 'P2: ' + (p2Active ? 'Connected' : 'Waiting');
+        el2.className = 'status-badge ' + (p2Active ? 'on' : 'off');
+    }
+}
+
+function updateLobbyUI() {
+    if (hostLobbyActive) {
+        document.getElementById('lobbyP1Name').innerText = '🟠 ' + player1Name + ' (You)';
+        if (connectedPlayers[2]) {
+            document.getElementById('lobbyP2Name').innerText = '🔵 ' + player2Name;
+            document.getElementById('lobbyP2Status').className = 'status-badge ' + (guestReady ? 'ready' : 'waiting');
+            document.getElementById('lobbyP2Status').innerText = guestReady ? 'READY ✓' : 'WAITING...';
+        } else {
+            document.getElementById('lobbyP2Name').innerText = '🔵 Waiting...';
+            document.getElementById('lobbyP2Status').className = 'status-badge off';
+            document.getElementById('lobbyP2Status').innerText = 'NOT JOINED';
+        }
+        const btn = document.getElementById('hostStartBtn');
+        if (!connectedPlayers[2]) { btn.disabled = true; btn.innerText = '⏳ WAITING FOR PLAYER 2...'; }
+        else if (!guestReady) { btn.disabled = true; btn.innerText = '⏳ P2 NOT READY'; }
+        else { btn.disabled = false; btn.innerText = '🚀 START GAME'; }
+    }
+    if (guestLobbyActive) {
+        document.getElementById('guestLobbyP2Name').innerText = '🔵 ' + player1Name + ' (You)';
+        const st = document.getElementById('guestLobbyP2Status');
+        const btn = document.getElementById('guestReadyBtn');
+        if (guestReady) {
+            st.className = 'status-badge ready';
+            st.innerText = 'READY ✓';
+            btn.className = 'ready-btn is-ready';
+            btn.innerText = '✓ READY HO GAYE';
+            document.getElementById('guestReadyMsg').innerText = 'Host ke start karne ka intezaar...';
+        } else {
+            st.className = 'status-badge waiting';
+            st.innerText = 'WAITING';
+            btn.className = 'ready-btn not-ready';
+            btn.innerText = '✋ READY';
+            document.getElementById('guestReadyMsg').innerText = 'Ready hone ke liye dabao...';
+        }
+    }
+}
+
+function checkPlayerActive() {
+    if (player2.active) document.getElementById('p2Hud').style.display = 'flex';
+    else document.getElementById('p2Hud').style.display = 'none';
+    updateHUD();
+}
+
+// =================================================================
+// ==================== MULTIPLAYER - GUEST ====================
+// =================================================================
+function joinHost() {
+    let hostId = document.getElementById('joinIdInput').value.trim().toLowerCase();
+    if (!hostId) { alert('Host ID daalo!'); return; }
+    document.getElementById('joinStatus').innerText = "⏳ Connecting...";
+    if (peer) peer.destroy();
+    peer = new Peer();
+    isGuest = true; isHost = false;
+    
+    peer.on('open', (myId) => {
+        hostConn = peer.connect(hostId, { reliable: true });
+        hostConn.on('open', () => {
+            document.getElementById('joinStatus').innerText = "✅ Connected!";
+            hostConn.send({ type: 'register', player: 2, guestName: player1Name, peerId: myId });
+        });
+        hostConn.on('data', (data) => handleHostData(data));
+        hostConn.on('close', () => {
+            document.getElementById('joinStatus').innerText = "❌ Disconnected!";
+            alert('Host se connection toot gaya!');
+            stopVoice();
+            setTimeout(() => {
+                hideModal('joinSetupModal');
+                hideModal('guestLobbyModal');
+                guestLobbyActive = false;
+                showModal('multiplayerModal');
+            }, 500);
+        });
+    });
+    peer.on('error', (err) => { document.getElementById('joinStatus').innerText = "❌ " + (err.type || 'Error'); });
+    peer.on('call', (call) => {
+        incomingCall = call;
+        if (localStream) call.answer(localStream); else call.answer();
+        call.on('stream', (remoteStream) => playRemoteAudio(remoteStream));
+        activeCall = call;
+    });
+    setTimeout(() => {
+        if (!hostConn || !hostConn.open) document.getElementById('joinStatus').innerText = "❌ Timeout!";
+    }, 8000);
+}
+
+function handleHostData(data) {
+    if (data.type === 'registered') {
+        if (data.status === 'success') {
+            myPlayerNum = data.player;
+            player2.active = true;
+            if (data.p1Name) player1Name = data.p1Name;
+            if (data.difficulty) difficulty = data.difficulty;
+            checkPlayerActive();
+            hideModal('joinSetupModal');
+            hideModal('multiplayerModal');
+            hideModal('menuModal');
+            hideMenuBg();
+            guestLobbyActive = true;
+            guestReady = false;
+            showModal('guestLobbyModal');
+            updateLobbyUI();
+            addChatSystemMsg('guestChatMessages', '🟢 Connected! Ready dabao.');
+            document.getElementById('guestLobbyP1Name').innerText = '🟠 ' + player1Name + ' (Host)';
+        } else alert(data.message || 'Could not join');
+    }
+    else if (data.type === 'startGameSignal') {
+        hideModal('guestLobbyModal');
+        guestLobbyActive = false;
+        p1Score = 0; p2Score = 0;
+        player1.lives = 3; player2.lives = 3;
+        items = []; particles = [];
+        clearAllPowerups();
+        level = data.difficulty === 'medium' ? 2 : (data.difficulty === 'hard' ? 4 : 1);
+        difficulty = data.difficulty || difficulty;
+        simpleMode = data.simpleMode || false;
+        if (data.theme) setTheme(data.theme);
+        hideMenuBg();
+        showUI();
+        document.getElementById('gameMicBtn').classList.add('visible');
+        isPlaying = true;
+        isGameOver = false;
+        isPaused = false;
+        lastSpawn = 0;
+    }
+    else if (data.type === 'gameState') {
+        if (data.items) items = data.items;
+        if (data.p1Score !== undefined) p1Score = data.p1Score;
+        if (data.p2Score !== undefined) p2Score = data.p2Score;
+        if (data.p1Lives !== undefined) player1.lives = data.p1Lives;
+        if (data.p2Lives !== undefined) player2.lives = data.p2Lives;
+        if (data.level !== undefined) level = data.level;
+        if (data.player1X !== undefined) player1.targetX = data.player1X;
+        if (data.player2X !== undefined) player2.targetX = data.player2X;
+        if (data.isPlaying !== undefined) isPlaying = data.isPlaying;
+        if (data.p1Name !== undefined) player1Name = data.p1Name;
+        if (data.p2Name !== undefined) player2Name = data.p2Name;
+        if (data.theme !== undefined && data.theme !== theme) setTheme(data.theme);
+        if (data.isGameOver !== undefined && data.isGameOver && !isGameOver) { isGameOver = true; isPlaying = false; }
+        if (data.p1Powerups) p1Powerups = data.p1Powerups;
+        if (data.p2Powerups) p2Powerups = data.p2Powerups;
+        updatePowerupDisplay();
+        updateHUD();
+    }
+    else if (data.type === 'gameOver') { isGameOver = true; isPlaying = false; playSfx('over'); showGameOverResult(data); }
+    else if (data.type === 'nameUpdate') {
+        if (data.p1) player1Name = data.p1;
+        if (data.p2) player2Name = data.p2;
+        updateHUD();
+        updateLobbyUI();
+    }
+    else if (data.type === 'difficultyUpdate') { if (data.difficulty) { difficulty = data.difficulty; setDifficulty(difficulty); } }
+    else if (data.type === 'chat') { addChatMsg('guestChatMessages', data.text, 'them', data.from || player1Name); }
+    else if (data.type === 'exitToMenu') { stopVoice(); cancelGuestSilent(); backToMenu(); }
+}
+
+// =================================================================
+// ==================== LOBBY ACTIONS ====================
+// =================================================================
+function hostStartGame() {
+    if (!connectedPlayers[2]) { alert('Player 2 abhi join nahi hua!'); return; }
+    if (!guestReady) { alert('⚠️ Player 2 ne READY nahi kiya!'); return; }
+    
+    hideModal('hostLobbyModal');
+    hostLobbyActive = false;
+    if (connectedPlayers[2] && connectedPlayers[2].open) {
+        connectedPlayers[2].send({ type: 'startGameSignal', difficulty, theme, simpleMode });
+    }
+    beginGameRound();
+}
+
+function beginGameRound() {
+    p1Score = 0; p2Score = 0;
+    player1.lives = 3; player2.lives = 3;
+    items = []; particles = [];
+    clearAllPowerups();
+    level = difficulty === 'medium' ? 2 : (difficulty === 'hard' ? 4 : 1);
+    isPlaying = true;
+    isPaused = false;
+    isGameOver = false;
+    lastSpawn = 0;
+    
+    hideMenuBg();
+    showUI();
+    document.getElementById('gameMicBtn').classList.add('visible');
+    
+    if (player2.active) {
+        player1.x = canvas.width / 3 - player1.width / 2;
+        player2.x = (canvas.width / 3) * 2 - player2.width / 2;
+    }
+    player1.targetX = player1.x;
+    player2.targetX = player2.x;
+    
+    updateHUD();
+    startBgm();
+}
+
+function guestToggleReady() {
+    guestReady = !guestReady;
+    if (hostConn && hostConn.open) hostConn.send({ type: 'guestReady', ready: guestReady });
+    updateLobbyUI();
+    vibrate(30);
+}
+
+function cancelHostSilent() {
+    if (peer) { peer.destroy(); peer = null; }
+    connectedPlayers = { 1: null, 2: null };
+    isHost = false; hostLobbyActive = false; guestReady = false;
+    player2.active = false; player2Name = ""; guestPeerId = null;
+    checkPlayerActive();
+    hideModal('hostLobbyModal');
+    document.getElementById('gameMicBtn').classList.remove('visible');
+}
+function cancelHost() { stopVoice(); cancelHostSilent(); showModal('multiplayerModal'); }
+
+function cancelGuestSilent() {
+    if (hostConn) { try { hostConn.close(); } catch(e){} hostConn = null; }
+    if (peer) { try { peer.destroy(); } catch(e){} peer = null; }
+    isGuest = false; guestLobbyActive = false; guestReady = false;
+    player2.active = false; player2Name = "";
+    checkPlayerActive();
+    hideModal('guestLobbyModal');
+    document.getElementById('gameMicBtn').classList.remove('visible');
+}
+function cancelGuest() { stopVoice(); cancelGuestSilent(); showModal('multiplayerModal'); }
+
+// =================================================================
+// ==================== CHAT ====================
+// =================================================================
+function addChatMsg(containerId, text, type, senderName) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const msg = document.createElement('div');
+    msg.className = 'chat-msg ' + type;
+    if (type === 'me' || type === 'them') {
+        const sender = document.createElement('span');
+        sender.className = 'sender';
+        sender.textContent = senderName || (type === 'me' ? 'You' : 'Them');
+        msg.appendChild(sender);
+        msg.appendChild(document.createTextNode(text));
+    } else msg.textContent = text;
+    container.appendChild(msg);
+    container.scrollTop = container.scrollHeight;
+    while (container.children.length > 30) container.removeChild(container.firstChild);
+}
+function addChatSystemMsg(containerId, text) { addChatMsg(containerId, text, 'system'); }
+
+function hostSendMessage() {
+    const input = document.getElementById('hostChatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    addChatMsg('hostChatMessages', text, 'me', player1Name);
+    if (connectedPlayers[2] && connectedPlayers[2].open) connectedPlayers[2].send({ type: 'chat', text: text, from: player1Name });
+    input.value = '';
+}
+function guestSendMessage() {
+    const input = document.getElementById('guestChatInput');
+    const text = input.value.trim();
+    if (!text) return;
+    addChatMsg('guestChatMessages', text, 'me', player1Name);
+    if (hostConn && hostConn.open) hostConn.send({ type: 'chat', text: text, from: player1Name });
+    input.value = '';
+}
+function hostSendEmoji(emoji) {
+    addChatMsg('hostChatMessages', emoji, 'me', player1Name);
+    if (connectedPlayers[2] && connectedPlayers[2].open) connectedPlayers[2].send({ type: 'chat', text: emoji, from: player1Name });
+}
+function guestSendEmoji(emoji) {
+    addChatMsg('guestChatMessages', emoji, 'me', player1Name);
+    if (hostConn && hostConn.open) hostConn.send({ type: 'chat', text: emoji, from: player1Name });
+}
+
+// =================================================================
+// ==================== INPUT ====================
+// =================================================================
+let isDragging = false;
+function handleInput(clientX) {
+    if (!isPlaying || isPaused || isGameOver) return;
+    if (isGuest) {
+        if (player2.lives > 0) {
+            let w = canvas.width - player2.width;
+            let ratio = Math.max(0, Math.min(1, (clientX - player2.width/2) / w));
+            player2.targetX = ratio * w;
+            if (hostConn && hostConn.open) hostConn.send({ type: 'move', xRatio: ratio });
+        }
+    } else if (isHost) {
+        if (player1.lives > 0) player1.targetX = clientX - player1.width / 2;
+    } else {
+        if (player1.lives > 0) player1.targetX = clientX - player1.width / 2;
+    }
+}
+window.addEventListener('mousemove', (e) => { if (isDragging) handleInput(e.clientX); });
+window.addEventListener('mousedown', (e) => { if (isPlaying && !isPaused && !isGameOver) { isDragging = true; handleInput(e.clientX); } });
+window.addEventListener('mouseup', () => { isDragging = false; });
+window.addEventListener('touchstart', (e) => {
+    if (isPlaying && !isPaused && !isGameOver && e.touches.length > 0) { isDragging = true; handleInput(e.touches[0].clientX); }
+}, { passive: true });
+window.addEventListener('touchmove', (e) => {
+    if (isDragging && e.touches.length > 0) handleInput(e.touches[0].clientX);
+}, { passive: true });
+window.addEventListener('touchend', () => { isDragging = false; });
+
+// =================================================================
+// ==================== GAME LOGIC ====================
+// =================================================================
+function startGame() {
+    p1Score = 0; p2Score = 0;
+    player1.lives = 3; player2.lives = 3;
+    items = []; particles = [];
+    clearAllPowerups();
+    level = 1;
+    isPlaying = true;
+    isPaused = false;
+    isGameOver = false;
+    lastSpawn = 0;
+
+    hideModal('menuModal');
+    hideModal('resultModal');
+    hideMenuBg();
+    showUI();
+    document.getElementById('gameMicBtn').classList.remove('visible');
+
+    if (player2.active) {
+        player1.x = canvas.width / 3 - player1.width / 2;
+        player2.x = (canvas.width / 3) * 2 - player2.width / 2;
+    } else {
+        player1.x = canvas.width / 2 - player1.width / 2;
+    }
+    player1.targetX = player1.x;
+    player2.targetX = player2.x;
+
+    if (difficulty === 'medium') level = 2;
+    else if (difficulty === 'hard') level = 4;
+
+    updateHUD();
+    startBgm();
+
+    if (isHost && connectedPlayers[2] && connectedPlayers[2].open) {
+        connectedPlayers[2].send({ type: 'startGameSignal', difficulty, theme, simpleMode });
+    }
+}
+
+function playAgain() {
+    hideModal('resultModal');
+    document.getElementById('gameMicBtn').classList.remove('visible');
+    
+    if (isHost && connectedPlayers[2]) {
+        guestReady = false;
+        hostLobbyActive = true;
+        showModal('hostLobbyModal');
+        updateLobbyUI();
+        if (connectedPlayers[2].open) connectedPlayers[2].send({ type: 'backToLobby' });
+    } else if (isGuest) {
+        guestReady = false;
+        guestLobbyActive = true;
+        showModal('guestLobbyModal');
+        updateLobbyUI();
+        if (hostConn && hostConn.open) hostConn.send({ type: 'guestReady', ready: false });
+    } else startGame();
+}
+
+function backToMenu() {
+    hideModal('resultModal');
+    isPlaying = false; isGameOver = false; isPaused = false;
+    hideUI();
+    document.getElementById('gameMicBtn').classList.remove('visible');
+    showMenuBg();
+    showModal('menuModal');
+    document.getElementById('modalTitle').innerText = "🌟 Shakir's Magic Basket 🌟";
+    document.getElementById('modalDesc').innerHTML = "Stars aur treats catch karo!<br>⚠️ Bombs se bacho, 💖 hearts se life lo!";
+    document.getElementById('playBtn').innerText = 'PLAY NOW 🚀';
+    document.getElementById('playBtn').onclick = startGame;
+    document.getElementById('mpBtn').innerText = '🎮 MULTIPLAYER';
+    document.getElementById('mpBtn').onclick = openMultiplayerMenu;
+    document.getElementById('fsBtnMenu').style.display = 'block';
+}
+
+function updateHUD() {
+    document.getElementById('p1ScoreBoard').innerText = `${player1Name || 'Player'}: ${p1Score}`;
+    document.getElementById('p2ScoreBoard').innerText = `${player2Name || 'P2'}: ${p2Score}`;
+    document.getElementById('p1LivesBoard').innerText = '❤️'.repeat(Math.max(0, player1.lives)) || '💀';
+    document.getElementById('p2LivesBoard').innerText = '❤️'.repeat(Math.max(0, player2.lives)) || '💀';
+    const p1LivesEl = document.getElementById('p1LivesBoard');
+    const p2LivesEl = document.getElementById('p2LivesBoard');
+    if (player1.lives === 1) p1LivesEl.classList.add('danger'); else p1LivesEl.classList.remove('danger');
+    if (player2.lives === 1) p2LivesEl.classList.add('danger'); else p2LivesEl.classList.remove('danger');
+    let hs = Math.max(highScore, p1Score, p2Score);
+    document.getElementById('centerInfoBoard').innerText = `🏆 ${hs} | Lvl ${level}`;
+}
+
+function spawnItem() {
+    const rand = Math.random();
+    let type = 'star';
+    
+    // Simple mode: NO power-ups
+    if (!simpleMode) {
+        if (rand < 0.05) {
+            const puTypes = ['magnet', 'slowmo', 'freeze', 'shield', 'doublePoints'];
+            type = puTypes[Math.floor(Math.random() * puTypes.length)];
+        } else if (rand < 0.30) type = 'cupcake';
+        else if (rand < 0.50) type = 'apple';
+        else if (rand < 0.68) type = 'bomb';
+        else if (rand < 0.85) type = 'candy';
+        else type = 'heart';
+    } else {
+        // Simple mode: just stars, apples, bombs, hearts
+        if (rand < 0.35) type = 'star';
+        else if (rand < 0.55) type = 'apple';
+        else if (rand < 0.75) type = 'bomb';
+        else if (rand < 0.90) type = 'candy';
+        else type = 'heart';
+    }
+
+    const isPowerup = POWERUP_CONFIG[type] !== undefined;
+    const isFreeze = (isPowerupActiveP1('freeze') || isPowerupActiveP2('freeze')) && type === 'bomb';
+    items.push({
+        id: Date.now() + Math.random(),
+        x: Math.random() * (canvas.width - 60) + 30,
+        y: -50,
+        size: type === 'heart' ? 42 : (isPowerup ? 38 : 34),
+        type: type,
+        speed: isFreeze ? 0 : getSpeedForLevel(),
+        rot: 0,
+        rotSpeed: (Math.random() - 0.5) * 0.1,
+        catchP1: false, catchP2: false,
+        beatPhase: Math.random() * Math.PI * 2,
+        frozen: isFreeze
+    });
+}
+
+function getSpeedForLevel() {
+    let base = 3.5 + Math.random() * 1.5;
+    let levelBoost = (level - 1) * 0.55;
+    if (difficulty === 'medium') { base += 1.5; levelBoost = (level - 1) * 0.65; }
+    else if (difficulty === 'hard') { base += 3.5; levelBoost = (level - 1) * 0.85; }
+    let speed = base + levelBoost;
+    // Slow-mo affects ONLY if this player has it active
+    // Note: items are shared, so we apply if EITHER player has slowmo (visual)
+    if (isPowerupActiveP1('slowmo') || isPowerupActiveP2('slowmo')) speed *= 0.4;
+    return speed;
+}
+
+function getSpawnInterval() {
+    let base = 900 - (level - 1) * 70;
+    if (difficulty === 'medium') { base -= 180; base -= (level - 1) * 30; }
+    else if (difficulty === 'hard') { base -= 320; base -= (level - 1) * 40; }
+    return Math.max(300, base);
+}
+
+function createParticles(x, y, color, count = 14) {
+    for (let i = 0; i < count; i++) {
+        particles.push({
+            x, y, vx: (Math.random() - 0.5) * 10, vy: (Math.random() - 0.5) * 10,
+            radius: Math.random() * 5 + 3, color, life: 1
+        });
+    }
+}
+
+function getItemEmoji(type) {
+    const mapping = getThemeItemMapping();
+    return mapping[type] || '⭐';
+}
+function getItemPoints(type) { return { star:10, cupcake:15, apple:12, candy:20, heart:0, bomb:0 }[type] || 0; }
+
+function checkLevelUp() {
+    let total = player2.active ? (p1Score + p2Score) : p1Score;
+    let threshold = difficulty === 'easy' ? 150 : (difficulty === 'medium' ? 110 : 80);
+    let newLevel = Math.floor(total / threshold) + 1;
+    if (difficulty === 'medium') newLevel = Math.max(newLevel, 2);
+    if (difficulty === 'hard') newLevel = Math.max(newLevel, 4);
+    if (newLevel > level) {
+        level = newLevel;
+        playSfx('level');
+        vibrate([30, 20, 30, 20, 50]);
+        const el = document.getElementById('centerInfoBoard');
+        el.style.background = 'var(--accent, #ffea00)';
+        el.style.color = '#000';
+        setTimeout(() => {
+            el.style.background = 'rgba(0, 0, 0, 0.42)';
+            el.style.color = 'var(--accent, #ffea00)';
+        }, 400);
+    }
+}
+
+function update(dt, now) {
+    if (!isPlaying || isPaused || isGameOver) return;
+
+    tickPowerups(dt);
+
+    const smooth = 0.28;
+    if (player1.lives > 0) {
+        player1.x += (player1.targetX - player1.x) * smooth;
+        player1.x = Math.max(10, Math.min(canvas.width - player1.width - 10, player1.x));
+    }
+    if (player2.active && player2.lives > 0) {
+        player2.x += (player2.targetX - player2.x) * smooth;
+        player2.x = Math.max(10, Math.min(canvas.width - player2.width - 10, player2.x));
+    }
+
+    if (now - lastSpawn > getSpawnInterval()) { spawnItem(); lastSpawn = now; }
+
+    bgStars.forEach(s => {
+        s.alpha += s.speed;
+        if (s.alpha > 1 || s.alpha < 0.15) s.speed = -s.speed;
+    });
+
+    // Magnet P1 (only affects P1's catch — but since items are shared, magnet pulls toward P1)
+    if (isPowerupActiveP1('magnet')) {
+        items.forEach(item => {
+            if (item.type === 'bomb' || POWERUP_CONFIG[item.type]) return;
+            const targetX = player1.x + player1.width/2;
+            const targetY = player1.y;
+            const dx = targetX - item.x, dy = targetY - item.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > 0 && dist < 400) { item.x += (dx / dist) * 2.5; item.y += (dy / dist) * 1.5; }
+        });
+    }
+    // Magnet P2
+    if (isPowerupActiveP2('magnet')) {
+        items.forEach(item => {
+            if (item.type === 'bomb' || POWERUP_CONFIG[item.type]) return;
+            const targetX = player2.x + player2.width/2;
+            const targetY = player2.y;
+            const dx = targetX - item.x, dy = targetY - item.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > 0 && dist < 400) { item.x += (dx / dist) * 2.5; item.y += (dy / dist) * 1.5; }
+        });
+    }
+
+    for (let i = items.length - 1; i >= 0; i--) {
+        let item = items[i];
+        item.y += item.speed * (dt / 16);
+        item.rot += item.rotSpeed;
+        item.beatPhase += 0.18;
+
+        const inP1 = player1.lives > 0 && item.y + item.size >= player1.y && item.y <= player1.y + player1.height &&
+            item.x + item.size/2 >= player1.x && item.x - item.size/2 <= player1.x + player1.width;
+        const inP2 = player2.active && player2.lives > 0 && item.y + item.size >= player2.y && item.y <= player2.y + player2.height &&
+            item.x + item.size/2 >= player2.x && item.x - item.size/2 <= player2.x + player2.width;
+
+        if (inP1 && !item.catchP1) item.catchP1 = true;
+        if (inP2 && !item.catchP2) item.catchP2 = true;
+
+        const belowP1 = item.y > player1.y + player1.height;
+        const belowP2 = !player2.active || item.y > player2.y + player2.height;
+
+        if ((item.catchP1 || item.catchP2) && belowP1 && belowP2) {
+            handleItemCaught(item, item.catchP1, item.catchP2);
+            items.splice(i, 1);
+            continue;
+        }
+        if (item.y > canvas.height + 60) {
+            if (!item.catchP1 && !item.catchP2) handleItemMissed(item);
+            items.splice(i, 1);
+        }
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.vy += 0.3; p.life -= 0.025;
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    if (player2.active) {
+        if (player1.lives <= 0 && player2.lives <= 0) endGame(true, 'tie');
+        else if (player1.lives <= 0) endGame(true, 'P2');
+        else if (player2.lives <= 0) endGame(true, 'P1');
+    } else {
+        if (player1.lives <= 0) endGame(false, null);
+    }
+    checkLevelUp();
+    updateHUD();
+}
+
+function handleItemCaught(item, byP1, byP2) {
+    // Power-ups (only if not simple mode)
+    if (!simpleMode && POWERUP_CONFIG[item.type]) {
+        if (byP1) activatePowerup(1, item.type);
+        if (byP2) activatePowerup(2, item.type);
+        createParticles(item.x, item.y, '#ffea00', 18);
+        return;
+    }
+    if (item.type === 'bomb') {
+        // Shield P1
+        if (byP1 && isPowerupActiveP1('shield')) {
+            p1Powerups.shield = 0;
+            updatePowerupDisplay();
+            playSfx('catch');
+            createParticles(item.x, item.y, '#00ffff', 25);
+            vibrate([10, 20, 10]);
+            return;
+        }
+        // Shield P2
+        if (byP2 && isPowerupActiveP2('shield')) {
+            p2Powerups.shield = 0;
+            updatePowerupDisplay();
+            playSfx('catch');
+            createParticles(item.x, item.y, '#00ffff', 25);
+            vibrate([10, 20, 10]);
+            return;
+        }
+        playSfx('bomb');
+        createParticles(item.x, item.y, '#ff3333', 20);
+        vibrate([100, 50, 100]);
+        if (byP1) { player1.lives--; p1Score = Math.max(0, p1Score - 15); }
+        if (byP2) { player2.lives--; p2Score = Math.max(0, p2Score - 15); }
+        return;
+    }
+    if (item.type === 'heart') {
+        playSfx('heart');
+        createParticles(item.x, item.y, '#ff69b4', 18);
+        vibrate(40);
+        if (byP1 && player1.lives < 5) player1.lives++;
+        if (byP2 && player2.lives < 5) player2.lives++;
+        return;
+    }
+    
+    // Normal item — simple points (no combo, no multiplier)
+    const pts = getItemPoints(item.type);
+    const doubleMult1 = (byP1 && isPowerupActiveP1('doublePoints')) ? 2 : 1;
+    const doubleMult2 = (byP2 && isPowerupActiveP2('doublePoints')) ? 2 : 1;
+    playSfx('catch');
+    vibrate(15);
+    const color = item.type === 'candy' ? '#ff69b4' : item.type === 'cupcake' ? '#ffcc00' : 'var(--accent, #ffea00)';
+    createParticles(item.x, item.y, color, 12);
+    if (byP1) p1Score += pts * doubleMult1;
+    if (byP2) p2Score += pts * doubleMult2;
+}
+
+function handleItemMissed(item) {
+    if (item.type === 'bomb') return;
+    if (item.type === 'heart') return;
+    if (!simpleMode && POWERUP_CONFIG[item.type]) return;
+    playSfx('miss');
+    if (player1.lives > 0) player1.lives--;
+    if (player2.active && player2.lives > 0) player2.lives--;
+}
+
+function endGame(isMultiplayer, winner) {
+    isGameOver = true;
+    isPlaying = false;
+    playSfx('over');
+    vibrate([200, 100, 200]);
+
+    let maxScore = Math.max(p1Score, p2Score);
+    if (maxScore > highScore) { highScore = maxScore; localStorage.setItem('shakir_highscore', highScore); }
+
+    let resultData = { p1Score, p2Score, p1Name: player1Name, p2Name: player2Name, highScore, level, isMultiplayer, winner };
+    showGameOverResult(resultData);
+
+    if (isHost && connectedPlayers[2] && connectedPlayers[2].open) {
+        connectedPlayers[2].send({ type: 'gameOver', ...resultData });
+    }
+}
+
+function showGameOverResult(data) {
+    let winnerText = '';
+    const { p1Score, p2Score, p1Name, p2Name, isMultiplayer, winner } = data;
+
+    if (isMultiplayer) {
+        if (winner === 'P1' || (winner !== 'tie' && winner !== 'P2' && p1Score > p2Score)) winnerText = `🏆 ${p1Name} WINS! 🏆`;
+        else if (winner === 'P2' || p2Score > p1Score) winnerText = `🏆 ${p2Name} WINS! 🏆`;
+        else winnerText = '🤝 TIE!';
+    } else winnerText = `🏆 Score: ${p1Score}`;
+    document.getElementById('winnerText').innerText = winnerText;
+
+    let details = '';
+    if (isMultiplayer) {
+        const p1Win = winner === 'P1' || (winner !== 'tie' && p1Score > p2Score);
+        const p2Win = winner === 'P2' || (winner !== 'tie' && p2Score > p1Score);
+        const tie = !p1Win && !p2Win;
+        details += `<div class="result-row p1 ${p1Win ? 'winner' : (tie ? '' : 'loser')}"><span>🟠 ${p1Name} ${p1Win ? '👑' : ''}</span><span>${p1Score} pts</span></div>`;
+        details += `<div class="result-row p2 ${p2Win ? 'winner' : (tie ? '' : 'loser')}"><span>🔵 ${p2Name} ${p2Win ? '👑' : ''}</span><span>${p2Score} pts</span></div>`;
+    } else {
+        details += `<div class="result-row p1"><span>🟠 ${p1Name}</span><span>${p1Score} pts</span></div>`;
+    }
+    details += `<div class="result-row" style="background:rgba(255,234,0,0.2); border:1px solid #ffea00;"><span>🏆 High Score</span><span>${data.highScore}</span></div>`;
+    details += `<div class="result-row" style="background:rgba(0,255,135,0.2); border:1px solid #00ff87;"><span>🚀 Level</span><span>${data.level}</span></div>`;
+
+    document.getElementById('resultDetails').innerHTML = details;
+    hideUI();
+    document.getElementById('gameMicBtn').classList.remove('visible');
+    showMenuBg();
+    showModal('resultModal');
+    
+    const btn = document.getElementById('resultPlayAgainBtn');
+    if (isHost && connectedPlayers[2]) btn.innerText = '🔄 BACK TO LOBBY';
+    else if (isGuest) btn.innerText = '🔄 READY AGAIN';
+    else btn.innerText = '🔄 PLAY AGAIN';
+}
+
+// =================================================================
+// ==================== RENDER ====================
+// =================================================================
+function getBgColors() {
+    return {
+        space: { c1: '#2e1a47', c2: '#130724', c3: '#06020c' },
+        underwater: { c1: '#0a3d62', c2: '#052c44', c3: '#001a2c' },
+        forest: { c1: '#1a4d2e', c2: '#0f2f1b', c3: '#061710' },
+        desert: { c1: '#8b5a2b', c2: '#5c3a1a', c3: '#2a1a0a' },
+        candy: { c1: '#ff69b4', c2: '#c71585', c3: '#4a0e2e' }
+    }[theme] || { c1: '#2e1a47', c2: '#130724', c3: '#06020c' };
+}
+
+function drawBasket(p, isLocal, playerNum) {
+    const x = p.x, y = p.y, w = p.width, h = p.height;
+    ctx.save();
+    if (player2.active) ctx.globalAlpha = isLocal ? 1.0 : 0.4;
+    const pu = playerNum === 1 ? p1Powerups : p2Powerups;
+    if (pu.shield > 0) {
+        ctx.shadowColor = '#00ffff';
+        ctx.shadowBlur = 40;
+    } else {
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 25;
+    }
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w - 12, y + h);
+    ctx.lineTo(x + 12, y + h);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x - 3, y - 4, w + 6, 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.beginPath();
+    ctx.moveTo(x + 8, y + 5);
+    ctx.lineTo(x + w - 8, y + 5);
+    ctx.lineTo(x + w - 16, y + h - 5);
+    ctx.lineTo(x + 16, y + h - 5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x + 10 + i * (w - 20) / 3, y + 4);
+        ctx.lineTo(x + 14 + i * (w - 28) / 3, y + h - 4);
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const colors = getBgColors();
+    const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, Math.max(canvas.width, canvas.height));
+    grad.addColorStop(0, colors.c1);
+    grad.addColorStop(0.6, colors.c2);
+    grad.addColorStop(1, colors.c3);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (isPowerupActiveP1('slowmo') || isPowerupActiveP2('slowmo')) { ctx.fillStyle = 'rgba(100, 200, 255, 0.08)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    if (isPowerupActiveP1('freeze') || isPowerupActiveP2('freeze')) { ctx.fillStyle = 'rgba(150, 220, 255, 0.1)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    if (isPowerupActiveP1('magnet') || isPowerupActiveP2('magnet')) { ctx.fillStyle = 'rgba(255, 100, 200, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+
+    bgStars.forEach(s => {
+        ctx.globalAlpha = Math.max(0.1, Math.abs(s.alpha));
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    items.forEach(item => {
+        ctx.save();
+        ctx.translate(item.x, item.y);
+        ctx.rotate(item.rot);
+        let scale = 1;
+        if (item.type === 'heart') scale = Math.sin(item.beatPhase) * 0.15 + 1;
+        if (!simpleMode && POWERUP_CONFIG[item.type]) scale = Math.sin(item.beatPhase * 1.5) * 0.12 + 1.1;
+        ctx.scale(scale, scale);
+        ctx.font = `${item.size}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (!simpleMode && POWERUP_CONFIG[item.type]) { ctx.shadowColor = '#ffea00'; ctx.shadowBlur = 30; }
+        else if (item.type === 'star' || item.type === 'heart' || item.type === 'candy') {
+            ctx.shadowColor = item.type === 'heart' ? '#ff69b4' : 'var(--accent, #ffea00)';
+            ctx.shadowBlur = 20;
+        } else if (item.type === 'bomb') {
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 15;
+        }
+        ctx.fillText(getItemEmoji(item.type), 0, 0);
+        ctx.restore();
+    });
+
+    if (isGuest) {
+        if (player2.active && player2.lives > 0) drawBasket(player2, true, 2);
+        if (player1.lives > 0) drawBasket(player1, false, 1);
+    } else if (isHost && player2.active) {
+        if (player1.lives > 0) drawBasket(player1, true, 1);
+        if (player2.lives > 0) drawBasket(player2, false, 2);
+    } else {
+        if (player1.lives > 0) drawBasket(player1, true, 1);
+        if (player2.active && player2.lives > 0) drawBasket(player2, true, 2);
+    }
+
+    particles.forEach(p => {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+}
+
+// =================================================================
+// ==================== SYNC ====================
+// =================================================================
+function broadcastGameState() {
+    if (!isHost || !connectedPlayers[2] || !connectedPlayers[2].open) return;
+    try {
+        connectedPlayers[2].send({
+            type: 'gameState',
+            items: items,
+            p1Score, p2Score,
+            p1Lives: player1.lives, p2Lives: player2.lives,
+            level,
+            player1X: player1.x, player2X: player2.x,
+            isPlaying, isGameOver,
+            p1Name: player1Name, p2Name: player2Name,
+            difficulty, theme, simpleMode,
+            p1Powerups, p2Powerups
+        });
+    } catch(e){}
+}
+
+// =================================================================
+// ==================== MAIN LOOP ====================
+// =================================================================
+function gameLoop(now) {
+    if (!lastFrameTime) lastFrameTime = now;
+    const dt = Math.min(50, now - lastFrameTime) || 16;
+    lastFrameTime = now;
+
+    update(dt, now);
+    render();
+
+    if (isHost && isPlaying && !isPaused) {
+        if (now - screencastTimer > 100) {
+            screencastTimer = now;
+            broadcastGameState();
+        }
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+// =================================================================
+// ==================== INIT ====================
+// =================================================================
+document.getElementById('bgmSlider').value = Math.round(savedBgm * 100);
+document.getElementById('sfxSlider').value = Math.round(savedSfx * 100);
+document.getElementById('bgmVal').innerText = Math.round(savedBgm * 100) + '%';
+document.getElementById('sfxVal').innerText = Math.round(savedSfx * 100) + '%';
+document.getElementById('p1NameInput').value = player1Name;
+document.getElementById('vibrationToggle').checked = vibrationEnabled;
+document.getElementById('darkModeToggle').checked = darkMode;
+document.getElementById('simpleModeCheckbox').checked = simpleMode;
+if (simpleMode) document.getElementById('simpleModeToggle').classList.add('active');
+
+document.body.className = 'theme-' + theme + (darkMode ? '' : ' light-mode');
+document.querySelectorAll('.theme-btn').forEach(b => {
+    if (b.dataset.theme === theme) b.classList.add('active');
+    else b.classList.remove('active');
+});
+document.querySelectorAll('.diff-btn').forEach(b => {
+    if (b.dataset.diff === difficulty) b.classList.add('active');
+    else b.classList.remove('active');
+});
+
+spawnMenuParticles();
+resizeCanvas();
+
+window.addEventListener('load', () => {
+    if (!player1Name || player1Name.trim() === "") {
+        document.getElementById('namePromptOverlay').classList.remove('hidden');
+        setTimeout(() => document.getElementById('firstTimeNameInput').focus(), 300);
+    } else {
+        initMenu();
+    }
+});
+
+document.addEventListener('touchmove', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+</script>
+</body>
+</html>
